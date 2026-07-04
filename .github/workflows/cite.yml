@@ -1,22 +1,14 @@
 name: Run CITE Tests
 
 on:
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - 'mkdocs.yml'
-      - 'requirements.txt'
-      - '.github/workflows/docs.yml'
-      - '**/src/main/resources/GeoServerApplication_*.properties'
-      - '!**/src/main/resources/GeoServerApplication_fr.properties'
-
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-war:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     name: Build GeoServer WAR
     steps:
       - name: Checkout repository (shallow clone)
@@ -51,6 +43,12 @@ jobs:
           name: geoserver-war
           path: build/cite/geoserver/geoserver.war
 
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+      fail-fast: false
   run-cite-tests:
     needs: build-war
     runs-on: ubuntu-latest
