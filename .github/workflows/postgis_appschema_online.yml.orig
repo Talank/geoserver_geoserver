@@ -10,6 +10,20 @@ jobs:
   appschema-postgis:
 
     runs-on: ${{ matrix.os }}
+    services:
+      postgis:
+        image: postgis/postgis:15-3.4
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: geoserver
+          POSTGRES_USER: geoserver
+          POSTGRES_DB: appschema
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Set up JDK 17
@@ -25,18 +39,6 @@ jobs:
           key: gs-${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             gs-${{ runner.os }}-maven-
-      - name: Start PostGIS container
-        run: |
-          docker run -d --name postgis \
-            -e POSTGRES_PASSWORD=geoserver \
-            -e POSTGRES_USER=geoserver \
-            -e POSTGRES_DB=appschema \
-            -p 5432:5432 \
-            postgis/postgis:15-3.4
-          for i in $(seq 1 30); do
-            docker exec postgis pg_isready -U geoserver && break
-            sleep 2
-          done
       - name: Build GeoServer dependent modules (no tests, prepare fresh artifacts)
         run: mvn -B clean install -T1C -U --file src/pom.xml -Prelease,app-schema-online-test -DskipTests -pl 
           :gs-app-schema-postgis-test -am -Dspotless.apply.skip=true
